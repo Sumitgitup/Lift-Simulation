@@ -115,20 +115,27 @@ function buttonClickHandler(event) {
   const element = event.target; // The button that was clicked
   const destinationFloor = Number(element.getAttribute("floor-id")); // Get the floor number where the button was clicked
 
-  // Check if a lift is already on the destination floor
-  let { liftElement, liftId } = checkIsLiftAlreadyPresent(destinationFloor);
+  // Check how many times the button was clicked
+  let clicks = element.getAttribute("clicks") || 0;
+  clicks++;
+  element.setAttribute("clicks", clicks); // Update the click count
 
-  if (!liftElement) {
-    // If no lift is at the destination, find the nearest available lift and move it
+  // Attempt to move a lift for each click, if an idle lift is available
+  for (let i = 0; i < clicks; i++) {
     const availableLift = getAvailableLift(destinationFloor);
     if (availableLift) {
       moveLift(availableLift, destinationFloor);
     } else {
-      // If all lifts are busy, add the request to the pending queue
+      // If all lifts are busy, add the remaining requests to the pending queue
       pendingFloors.push(destinationFloor);
+      break;
     }
   }
+
+  // Reset the click count after processing
+  element.setAttribute("clicks", 0);
 }
+
 
 function getAvailableLift(destinationFloor) {
   const allLiftElements = document.querySelectorAll(".lift");
@@ -155,29 +162,36 @@ function getAvailableLift(destinationFloor) {
 
 function moveLift(liftInfo, destinationFloor) {
   const { liftElement, liftId } = liftInfo; // Get the lift element and its ID
+
+  const currentFloor =
+    Math.abs(parseInt(liftElement.style.transform.split("(")[1]) || 0) / 10 + 1; // Calculate the current floor of the lift
+  const floorsToMove = Math.abs(destinationFloor - currentFloor); // Calculate the number of floors to move
+
+  const transitionTime = floorsToMove * 2; // 2 seconds per floor
   const height = -(destinationFloor - 1) * 10; // Calculate the Y-axis translation
 
   isLiftMoving[liftId] = true; // Mark the lift as moving
-  liftElement.style.transition = `transform 2s ease-in-out`; // Set the speed based on the distance
+  liftElement.style.transition = `transform ${transitionTime}s ease-in-out`; // Set the transition time based on the number of floors
   liftElement.style.transform = `translateY(${height}rem)`; // Move the lift to the destination
 
-  // Open the lift doors after it reaches the floor
+  // After the lift has reached the destination floor
   setTimeout(() => {
     openLiftDoors(liftElement); // Open the doors
 
     setTimeout(() => {
       closeLiftDoors(liftElement); // Close the doors after a delay
 
-      // After the doors close, mark the lift as available and handle any pending requests
+      // After the doors close, handle the next pending request immediately
       setTimeout(() => {
-        isLiftMoving[liftId] = false; // Mark the lift as available
         if (pendingFloors.length > 0) {
-          const nextFloor = pendingFloors.shift();
-          moveLift(liftInfo, nextFloor); // Move the lift to the next pending floor
+          const nextFloor = pendingFloors.shift(); // Get the next floor request from the queue
+          moveLift(liftInfo, nextFloor); // Move the lift to the next requested floor
+        } else {
+          isLiftMoving[liftId] = false; // Mark the lift as available if no more requests
         }
-      }, 2500); // Wait for the doors to close before marking the lift as available
+      }, 2500); // Wait for the doors to close before moving to the next floor
     }, 2500); // Keep the doors open for 2.5 seconds before closing them
-  }, 2500); // Wait for the lift to reach the floor plus an additional 2 seconds
+  }, transitionTime * 1000); // Wait for the lift to reach the floor based on the calculated time
 }
 
 function openLiftDoors(liftElement) {
