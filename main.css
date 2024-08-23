@@ -73,6 +73,7 @@ body {
   
   .floor_container {
     height: 10rem;
+    width: fit-content;
     border-bottom: 1px solid black;
     display: flex;
     gap: 1.5rem;
