@@ -65,7 +65,7 @@ function generateFloors() {
     downBtn.addEventListener("click", buttonClickHandler);
 
     if (i === totalFloors) {
-      upBtn.setAttribute("disabled", true);
+      upBtn.style.display = 'none';
     } else if (i === 1) {
       downBtn.setAttribute("disabled", true);
     }
