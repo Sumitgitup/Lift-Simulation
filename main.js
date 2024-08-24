@@ -8,6 +8,7 @@ let totalLifts = 0;
 let totalFloors = 0;
 let pendingFloors = []; // Array to keep track of floor requests when all lifts are busy
 let isLiftMoving = []; // Array to track which lifts are currently moving
+let liftQueues = []; // Array to store requests for each lift
 
 // Event listener for form submission
 userForm.addEventListener("submit", validateUserForm);
@@ -16,7 +17,6 @@ function validateUserForm(event) {
   event.preventDefault(); // Prevents the form from reloading the page when submitted
 
   // Get the values input by the user
-  // The + operator is used to convert the input values from strings to numbers
   const liftCount = +document.querySelector("#totalLifts").value; // Convert the number of lifts from string to number
   const floorCount = +document.querySelector("#totalFloors").value; // Convert the number of floors from string to number
 
@@ -99,43 +99,31 @@ function generateLifts() {
     liftLeftDoor.className = "left-door";
     liftRightDoor.className = "right-door";
 
-    liftContainer.id = `lift ${i}`;
+    liftContainer.id = `lift${i}`;
 
     liftDoors.append(liftLeftDoor, liftRightDoor);
     liftContainer.append(liftDoors);
 
-    liftContainer.id = `lift${i}`; // Give each lift a unique ID
-
     firstFloor.append(liftContainer); // Place the lift on the 1st floor
     isLiftMoving[i] = false; // Initialize all lifts as not moving
+    liftQueues[i] = []; // Initialize an empty queue for each lift
   }
 }
 
 function buttonClickHandler(event) {
-  const element = event.target; // The button that was clicked
-  const destinationFloor = Number(element.getAttribute("floor-id")); // Get the floor number where the button was clicked
+  const element = event.target;
+  const destinationFloor = Number(element.getAttribute("floor-id"));
+  const availableLift = getAvailableLift(destinationFloor);
 
-  // Check how many times the button was clicked
-  let clicks = element.getAttribute("clicks") || 0;
-  clicks++;
-  element.setAttribute("clicks", clicks); // Update the click count
-
-  // Attempt to move a lift for each click, if an idle lift is available
-  for (let i = 0; i < clicks; i++) {
-    const availableLift = getAvailableLift(destinationFloor);
-    if (availableLift) {
-      moveLift(availableLift, destinationFloor);
-    } else {
-      // If all lifts are busy, add the remaining requests to the pending queue
-      pendingFloors.push(destinationFloor);
-      break;
+  if (availableLift) {
+    liftQueues[availableLift.liftId].push(destinationFloor);
+    if (!isLiftMoving[availableLift.liftId]) {
+      processNextFloor(availableLift.liftId);
     }
+  } else {
+    pendingFloors.push(destinationFloor);
   }
-
-  // Reset the click count after processing
-  element.setAttribute("clicks", 0);
 }
-
 
 function getAvailableLift(destinationFloor) {
   const allLiftElements = document.querySelectorAll(".lift");
@@ -158,6 +146,19 @@ function getAvailableLift(destinationFloor) {
   });
 
   return nearestLift; // Return the nearest available lift
+}
+
+function processNextFloor(liftId) {
+  if (liftQueues[liftId].length === 0) {
+    isLiftMoving[liftId] = false;
+    return;
+  }
+
+  isLiftMoving[liftId] = true;
+  const nextFloor = liftQueues[liftId].shift(); // Get the next floor request
+  const liftElement = document.querySelector(`#lift${liftId}`);
+
+  moveLift({ liftElement, liftId }, nextFloor);
 }
 
 function moveLift(liftInfo, destinationFloor) {
@@ -183,41 +184,15 @@ function moveLift(liftInfo, destinationFloor) {
 
       // After the doors close, handle the next pending request immediately
       setTimeout(() => {
-        if (pendingFloors.length > 0) {
+        if (liftQueues[liftId].length > 0) {
+          processNextFloor(liftId); // Process the next floor in the queue
+        } else if (pendingFloors.length > 0) {
           const nextFloor = pendingFloors.shift(); // Get the next floor request from the queue
-          moveLift(liftInfo, nextFloor); // Move the lift to the next requested floor
+          liftQueues[liftId].push(nextFloor);
+          processNextFloor(liftId); // Move the lift to the next requested floor
         } else {
           isLiftMoving[liftId] = false; // Mark the lift as available if no more requests
         }
       }, 2500); // Wait for the doors to close before moving to the next floor
-    }, 2500); // Keep the doors open for 2.5 seconds before closing them
-  }, transitionTime * 1000); // Wait for the lift to reach the floor based on the calculated time
-}
+    }, 2500);
 
-function openLiftDoors(liftElement) {
-  const liftDoors = liftElement.querySelector(".lift_doors-container");
-  liftDoors.classList.add("openLift");
-  liftDoors.classList.remove("closeLift");
-}
-
-function closeLiftDoors(liftElement) {
-  const liftDoors = liftElement.querySelector(".lift_doors-container");
-  liftDoors.classList.add("closeLift");
-  liftDoors.classList.remove("openLift");
-}
-
-function checkIsLiftAlreadyPresent(destinationFloor) {
-  const allLiftElements = document.querySelectorAll(".lift");
-  const height = -(destinationFloor - 1) * 10; // Calculate the Y position for the requested floor
-
-  for (const lift of allLiftElements) {
-    if (lift.style.transform == `translateY(${height}rem)`) {
-      // Check if any lift is already at the destination floor
-      let liftName = lift.id; //lift 1 , 2
-      let liftId = Number(liftName.replace(/\D/g, "")); // Extract the lift ID from the lift's name
-      return { liftElement: lift, liftId }; // Return the lift if found
-    }
-  }
-
-  return { liftElement: null, liftId: null }; // Return null if no lift is found at the destination floor
-}
