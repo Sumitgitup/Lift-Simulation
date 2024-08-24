@@ -67,7 +67,7 @@ function generateFloors() {
     if (i === totalFloors) {
       upBtn.style.display = 'none';
     } else if (i === 1) {
-      downBtn.setAttribute("disabled", true);
+      downBtn.style.display = 'none';
     }
 
     // Set attributes to identify which floor the buttons belong to
