@@ -2,7 +2,7 @@
 Create a web app where you can simulate lift mechanics for a client
 
 # UI Example
-![Lift Simulation Example](Lift-Simulation-Example.png "Lift Simulation Example")
+![Lift Simulation Example](https://github.com/Real-Dev-Squad/Lift-Simulation/blob/main/Lift-Simulation-Example.png?raw=true)
 
 # Requirements
   1. Have a page where you input the number of floors and lifts from the user
