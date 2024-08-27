@@ -1,34 +1,27 @@
 // Grabbing the form and building elements from the HTML
-const userInput = document.querySelector(".user_input"); // The entire form section
-const userForm = document.getElementById("user_form"); // The form where the user inputs floors and lifts
-const building = document.querySelector(".building"); // The section where floors and lifts will be displayed
+const userInput = document.querySelector(".user_input");
+const userForm = document.getElementById("user_form");
+const building = document.querySelector(".building");
 
 // Variables to store the total number of lifts and floors
 let totalLifts = 0;
 let totalFloors = 0;
-let pendingFloors = []; // Array to keep track of floor requests when all lifts are busy
-let isLiftMoving = []; // Array to track which lifts are currently moving
-let liftQueues = []; // Array to store requests for each lift
+let pendingRequests = []; // Queue for pending floor requests
+let isLiftMoving = []; // Array to track moving status of lifts
 
 // Event listener for form submission
 userForm.addEventListener("submit", validateUserForm);
 
 function validateUserForm(event) {
-  event.preventDefault(); // Prevents the form from reloading the page when submitted
+  event.preventDefault();
 
-  // Get the values input by the user
-  const liftCount = +document.querySelector("#totalLifts").value; // Convert the number of lifts from string to number
-  const floorCount = +document.querySelector("#totalFloors").value; // Convert the number of floors from string to number
+  const liftCount = +document.querySelector("#totalLifts").value;
+  const floorCount = +document.querySelector("#totalFloors").value;
 
-  // Validating the user's input
   if (liftCount <= 0) {
-    alert("No. of lifts should be greater than 0");
+    alert("Number of lifts should be greater than 0");
   } else if (floorCount <= 0) {
-    alert("No. of Floors should be greater than 0");
-  } else if (floorCount > 9999) {
-    alert("App will crash if the no. of floors is more than 9999");
-  } else if (liftCount > floorCount) {
-    alert("No. of lifts should be lesser than or equal to No. of Floors");
+    alert("Number of floors should be greater than 0");
   } else {
     building.innerHTML = ""; // Clear the building area
     totalFloors = floorCount;
@@ -36,61 +29,51 @@ function validateUserForm(event) {
 
     userInput.style.display = "none"; // Hide the input form
 
-    // Create floors and lifts based on the user's input
     generateFloors();
     generateLifts();
   }
 }
 
 function generateFloors() {
-  // Generate floors from the top (highest number) to the bottom (1st floor)
   for (let i = totalFloors; i >= 1; i--) {
-    const floorDiv = document.createElement("div"); // Create a div for each floor
-    const btnsDiv = document.createElement("div"); // Create a container for the buttons
-    const upBtn = document.createElement("button"); // Create the UP button
-    const downBtn = document.createElement("button"); // Create the DOWN button
+    const floorDiv = document.createElement("div");
+    const btnsDiv = document.createElement("div");
+    const upBtn = document.createElement("button");
+    const downBtn = document.createElement("button");
 
-    floorDiv.className = `floor_container`; // Assign a class to the floor container
+    floorDiv.className = `floor_container`;
     floorDiv.textContent = `Floor ${i}`;
-    btnsDiv.className = `floor_btns-container`; // Assign a class to the button container
+    btnsDiv.className = `floor_btns-container`;
 
-    upBtn.className = `btn`; // Assign a class to the UP button
-    upBtn.textContent = "UP"; // Set text for the UP button
+    upBtn.className = `btn`;
+    upBtn.textContent = "UP";
+    downBtn.className = `btn`;
+    downBtn.textContent = "DOWN";
 
-    downBtn.className = `btn`; // Assign a class to the DOWN button
-    downBtn.textContent = "DOWN"; // Set text for the DOWN button
+    upBtn.addEventListener("click", () => handleButtonClick(i, 'up'));
+    downBtn.addEventListener("click", () => handleButtonClick(i, 'down'));
 
-    // Add event listeners to the buttons
-    upBtn.addEventListener("click", buttonClickHandler);
-    downBtn.addEventListener("click", buttonClickHandler);
+    if (i === totalFloors) upBtn.style.display = 'none';
+    if (i === 1) downBtn.style.display = 'none';
 
-    if (i === totalFloors) {
-      upBtn.style.display = 'none';
-    } else if (i === 1) {
-      downBtn.style.display = 'none';
-    }
-
-    // Set attributes to identify which floor the buttons belong to
     floorDiv.setAttribute("floor-id", i);
     upBtn.setAttribute("floor-id", i);
     downBtn.setAttribute("floor-id", i);
 
-    // Add buttons to the button container and then add the button container to the floor
     btnsDiv.append(upBtn, downBtn);
     floorDiv.append(btnsDiv);
-    building.append(floorDiv); // Add the floor to the building section
+    building.append(floorDiv);
   }
 }
 
 function generateLifts() {
-  // Get the ground floor (1st floor)
   const firstFloor = document.querySelector('[floor-id="1"]');
-
-  // Create the lifts and place them on the ground floor
+  
   for (let i = 0; i < totalLifts; i++) {
     let liftContainer = document.createElement("div");
-    liftContainer.className = "lift"; // Assign a class to the lift
-
+    liftContainer.className = "lift";
+    liftContainer.id = `lift${i}`;
+    
     const liftDoors = document.createElement("div");
     liftDoors.className = "lift_doors-container";
     const liftLeftDoor = document.createElement("div");
@@ -99,100 +82,89 @@ function generateLifts() {
     liftLeftDoor.className = "left-door";
     liftRightDoor.className = "right-door";
 
-    liftContainer.id = `lift${i}`;
-
     liftDoors.append(liftLeftDoor, liftRightDoor);
     liftContainer.append(liftDoors);
 
-    firstFloor.append(liftContainer); // Place the lift on the 1st floor
-    isLiftMoving[i] = false; // Initialize all lifts as not moving
-    liftQueues[i] = []; // Initialize an empty queue for each lift
+    firstFloor.append(liftContainer);
+    isLiftMoving[i] = false;
   }
 }
 
-function buttonClickHandler(event) {
-  const element = event.target;
-  const destinationFloor = Number(element.getAttribute("floor-id"));
-  const availableLift = getAvailableLift(destinationFloor);
+function handleButtonClick(floor, direction) {
+  const availableLift = getNearestAvailableLift(floor);
 
   if (availableLift) {
-    liftQueues[availableLift.liftId].push(destinationFloor);
-    if (!isLiftMoving[availableLift.liftId]) {
-      processNextFloor(availableLift.liftId);
-    }
+    moveLift(availableLift, floor);
   } else {
-    pendingFloors.push(destinationFloor);
+    pendingRequests.push({ floor, direction });
   }
 }
 
-function getAvailableLift(destinationFloor) {
-  const allLiftElements = document.querySelectorAll(".lift");
+function getNearestAvailableLift(requestedFloor) {
+  const allLifts = document.querySelectorAll(".lift");
   let nearestLift = null;
-  let minDistance = Infinity; // Start with an infinitely large distance
+  let minDistance = Infinity;
 
-  // Find the nearest available lift (one that is not moving)
-  allLiftElements.forEach((lift, index) => {
+  allLifts.forEach((lift, index) => {
     if (!isLiftMoving[index]) {
-      // Check if the lift is not moving
-      const currentFloor =
-        Math.abs(parseInt(lift.style.transform.split("(")[1]) || 0) / 10 + 1; // Calculate the current floor of the lift
-      const distance = Math.abs(destinationFloor - currentFloor); // Calculate the distance to the requested floor
+      const currentFloor = Math.abs(parseInt(lift.style.transform.split("(")[1]) || 0) / 10 + 1;
+      const distance = Math.abs(requestedFloor - currentFloor);
 
-      if (distance < minDistance) {
-        minDistance = distance; // Update the minimum distance
-        nearestLift = { liftElement: lift, liftId: index }; // Keep track of the nearest lift
+      if (distance < minDistance && !isLiftAlreadyPresent(requestedFloor)) {
+        minDistance = distance;
+        nearestLift = { liftElement: lift, liftId: index };
       }
     }
   });
 
-  return nearestLift; // Return the nearest available lift
+  return nearestLift;
 }
 
-function processNextFloor(liftId) {
-  if (liftQueues[liftId].length === 0) {
-    isLiftMoving[liftId] = false;
-    return;
-  }
+function isLiftAlreadyPresent(floor) {
+  const allLifts = document.querySelectorAll(".lift");
+  const targetPosition = -(floor - 1) * 10; 
 
-  isLiftMoving[liftId] = true;
-  const nextFloor = liftQueues[liftId].shift(); // Get the next floor request
-  const liftElement = document.querySelector(`#lift${liftId}`);
-
-  moveLift({ liftElement, liftId }, nextFloor);
+  return Array.from(allLifts).some(lift => lift.style.transform === `translateY(${targetPosition}rem)`);
 }
 
 function moveLift(liftInfo, destinationFloor) {
-  const { liftElement, liftId } = liftInfo; // Get the lift element and its ID
-
-  const currentFloor =
-    Math.abs(parseInt(liftElement.style.transform.split("(")[1]) || 0) / 10 + 1; // Calculate the current floor of the lift
-  const floorsToMove = Math.abs(destinationFloor - currentFloor); // Calculate the number of floors to move
+  const { liftElement, liftId } = liftInfo;
+  const currentFloor = Math.abs(parseInt(liftElement.style.transform.split("(")[1]) || 0) / 10 + 1;
+  const floorsToMove = Math.abs(destinationFloor - currentFloor);
 
   const transitionTime = floorsToMove * 2; // 2 seconds per floor
-  const height = -(destinationFloor - 1) * 10; // Calculate the Y-axis translation
+  const height = -(destinationFloor - 1) * 10;
 
-  isLiftMoving[liftId] = true; // Mark the lift as moving
-  liftElement.style.transition = `transform ${transitionTime}s ease-in-out`; // Set the transition time based on the number of floors
-  liftElement.style.transform = `translateY(${height}rem)`; // Move the lift to the destination
+  isLiftMoving[liftId] = true;
+  liftElement.style.transition = `transform ${transitionTime}s ease-in-out`;
+  liftElement.style.transform = `translateY(${height}rem)`;
 
-  // After the lift has reached the destination floor
   setTimeout(() => {
-    openLiftDoors(liftElement); // Open the doors
+    openLiftDoors(liftElement);
 
     setTimeout(() => {
-      closeLiftDoors(liftElement); // Close the doors after a delay
+      closeLiftDoors(liftElement);
 
-      // After the doors close, handle the next pending request immediately
       setTimeout(() => {
-        if (liftQueues[liftId].length > 0) {
-          processNextFloor(liftId); // Process the next floor in the queue
-        } else if (pendingFloors.length > 0) {
-          const nextFloor = pendingFloors.shift(); // Get the next floor request from the queue
-          liftQueues[liftId].push(nextFloor);
-          processNextFloor(liftId); // Move the lift to the next requested floor
+        if (pendingRequests.length > 0) {
+          const nextRequest = pendingRequests.shift();
+          moveLift(liftInfo, nextRequest.floor);
         } else {
-          isLiftMoving[liftId] = false; // Mark the lift as available if no more requests
+          isLiftMoving[liftId] = false;
         }
-      }, 2500); // Wait for the doors to close before moving to the next floor
+      }, 2500);
     }, 2500);
+  }, transitionTime * 1000);
+}
 
+function openLiftDoors(liftElement) {
+  const liftDoors = liftElement.querySelector(".lift_doors-container");
+  liftDoors.classList.add("openLift");
+  liftDoors.classList.remove("closeLift");
+}
+
+function closeLiftDoors(liftElement) {
+  const liftDoors = liftElement.querySelector(".lift_doors-container");
+  liftDoors.classList.add("closeLift");
+  liftDoors.classList.remove("openLift");
+}
