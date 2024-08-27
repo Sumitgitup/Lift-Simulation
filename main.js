@@ -97,18 +97,32 @@ function generateLifts() {
   }
 }
 
+// This function will handle button clicks for both up and down buttons
 function buttonClickHandler(event) {
-  const element = event.target;
-  const destinationFloor = Number(element.getAttribute("floor-id"));
+  const element = event.target; // The button that was clicked
+  const destinationFloor = Number(element.getAttribute("floor-id")); // Get the floor number where the button was clicked
 
+  // Check if the button is currently processing a request
+  if (element.getAttribute("processing")) {
+    return; // If a request is being processed, ignore further clicks
+  }
+
+  element.setAttribute("processing", "true"); // Mark the button as being processed
+
+  // Process the first request
   const availableLift = getAvailableLift(destinationFloor);
-
   if (availableLift) {
     moveLift(availableLift, destinationFloor);
   } else {
-    pendingFloors.push(destinationFloor);
+    pendingFloors.push(destinationFloor); // If no lifts are available, add to pending queue
   }
+
+  // Wait for 2 seconds before allowing the button to process another request
+  setTimeout(() => {
+    element.removeAttribute("processing"); // Allow new requests after 2 seconds
+  }, 2000); // 2000 milliseconds = 2 seconds
 }
+
 
 function getAvailableLift(destinationFloor) {
   const allLiftElements = document.querySelectorAll(".lift");
