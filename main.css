@@ -142,4 +142,22 @@ body {
     transform: translateX(0);
     transition: transform 2.5s ease-in-out;
   }
+
+/* Example of a media query for mobile devices */
+@media (max-width: 768px) {
+  .floor_container {
+    height: 8rem;
+    margin: 0 0.5rem;
+    gap: 0.5rem;
+  }
+  
+  .lift {
+    width: 4rem;
+    height: 6rem;
+  }
+  
+  .floor_btns-container button {
+    width: 4rem;
+  }
+}
   
