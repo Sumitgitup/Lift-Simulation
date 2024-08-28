@@ -144,20 +144,35 @@ body {
   }
 
 /* Example of a media query for mobile devices */
-@media (max-width: 768px) {
-  .floor_container {
-    height: 8rem;
-    margin: 0 0.5rem;
-    gap: 0.5rem;
-  }
+ @media (max-width: 768px) {
+    .building {
+      flex-direction: column;
+    }
   
-  .lift {
-    width: 4rem;
-    height: 6rem;
-  }
+    .lift {
+      width: 100%;
+      height: auto;
+    }
   
-  .floor_btns-container button {
-    width: 4rem;
+    .floor_btns-container button {
+      width: 100%;
+      margin-top: 1rem;
+    }
+    
+    body {
+      font-size: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        font-size: 0.875rem;
+      }
+    }
+    
+    .building {
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+    
   }
-}
   
