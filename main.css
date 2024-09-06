@@ -142,37 +142,3 @@ body {
     transform: translateX(0);
     transition: transform 2.5s ease-in-out;
   }
-
-/* Example of a media query for mobile devices */
- @media (max-width: 768px) {
-    .building {
-      flex-direction: column;
-    }
-  
-    .lift {
-      width: 100%;
-      height: auto;
-    }
-  
-    .floor_btns-container button {
-      width: 100%;
-      margin-top: 1rem;
-    }
-    
-    body {
-      font-size: 1rem;
-    }
-    
-    @media (max-width: 768px) {
-      body {
-        font-size: 0.875rem;
-      }
-    }
-    
-    .building {
-      overflow-y: auto;
-      max-height: 100vh;
-    }
-    
-  }
-  
