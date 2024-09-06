@@ -5,8 +5,9 @@ const building = document.querySelector(".building");
 
 let totalLifts = 0;
 let totalFloors = 0;
-let pendingFloors = []; 
+let pendingFloors = [];
 let isLiftMoving = [];
+let floorLiftCount = {}; // To keep track of how many lifts are present on each floor
 
 userForm.addEventListener("submit", validateUserForm);
 
@@ -25,11 +26,11 @@ function validateUserForm(event) {
   } else if (liftCount > floorCount) {
     alert("No. of lifts should be lesser than or equal to No. of Floors");
   } else {
-    building.innerHTML = ""; 
+    building.innerHTML = "";
     totalFloors = floorCount;
     totalLifts = liftCount;
 
-    userInput.style.display = "none"; 
+    userInput.style.display = "none";
 
     generateFloors();
     generateLifts();
@@ -69,6 +70,9 @@ function generateFloors() {
     btnsDiv.append(upBtn, downBtn);
     floorDiv.append(btnsDiv);
     building.append(floorDiv);
+
+    // Initialize floorLiftCount with 0 lifts for each floor
+    floorLiftCount[i] = 0;
   }
 }
 
@@ -93,7 +97,7 @@ function generateLifts() {
     liftContainer.append(liftDoors);
 
     firstFloor.append(liftContainer);
-    isLiftMoving[i] = false;
+    isLiftMoving[i] = false; // Initialize lifts as not moving
   }
 }
 
@@ -107,9 +111,15 @@ function buttonClickHandler(event) {
     return; // If a request is being processed, ignore further clicks
   }
 
+  // Restrict to only two lifts per floor
+  if (floorLiftCount[destinationFloor] >= 2) {
+    
+    return; // If there are already 2 lifts on this floor, ignore further requests
+  }
+
   element.setAttribute("processing", "true"); // Mark the button as being processed
 
-  // Process the first request
+  // Process the request
   const availableLift = getAvailableLift(destinationFloor);
   if (availableLift) {
     moveLift(availableLift, destinationFloor);
@@ -123,14 +133,13 @@ function buttonClickHandler(event) {
   }, 2000); // 2000 milliseconds = 2 seconds
 }
 
-
 function getAvailableLift(destinationFloor) {
   const allLiftElements = document.querySelectorAll(".lift");
   let nearestLift = null;
   let minDistance = Infinity;
 
   allLiftElements.forEach((lift, index) => {
-    if (!isLiftMoving[index]) {
+    if (!isLiftMoving[index]) { // Only consider lifts that are not busy
       const currentFloor = Math.abs(parseInt(lift.style.transform.split("(")[1]) || 0) / 10 + 1;
       const distance = Math.abs(destinationFloor - currentFloor);
 
@@ -149,29 +158,33 @@ function moveLift(liftInfo, destinationFloor) {
   const currentFloor = Math.abs(parseInt(liftElement.style.transform.split("(")[1]) || 0) / 10 + 1;
   const floorsToMove = Math.abs(destinationFloor - currentFloor);
 
-  const transitionTime = floorsToMove * 2; 
+  const transitionTime = floorsToMove * 2;
   const height = -(destinationFloor - 1) * 10;
 
+  // Mark the lift as busy
   isLiftMoving[liftId] = true;
+  floorLiftCount[destinationFloor]++; // Increment lift count on the destination floor
+
   liftElement.style.transition = `transform ${transitionTime}s ease-in-out`;
   liftElement.style.transform = `translateY(${height}rem)`;
 
   setTimeout(() => {
-    openLiftDoors(liftElement);
+    openLiftDoors(liftElement); // Open the doors after reaching the destination
 
     setTimeout(() => {
-      closeLiftDoors(liftElement);
+      closeLiftDoors(liftElement); // Close the doors after opening
 
       setTimeout(() => {
         if (pendingFloors.length > 0) {
           const nextFloor = pendingFloors.shift();
-          moveLift(liftInfo, nextFloor);
+          moveLift(liftInfo, nextFloor); // Move to the next pending request if any
         } else {
-          isLiftMoving[liftId] = false;
+          isLiftMoving[liftId] = false; // Mark the lift as available after operation
+          floorLiftCount[destinationFloor]--; // Decrement lift count after the lift leaves
         }
-      }, 2500);
-    }, 2500);
-  }, transitionTime * 1000);
+      }, 2500); // Wait for 2.5 seconds after closing the doors
+    }, 2500); // Keep the doors open for 2.5 seconds
+  }, transitionTime * 1000); // Wait for the lift to finish moving
 }
 
 function openLiftDoors(liftElement) {
@@ -184,19 +197,4 @@ function closeLiftDoors(liftElement) {
   const liftDoors = liftElement.querySelector(".lift_doors-container");
   liftDoors.classList.add("closeLift");
   liftDoors.classList.remove("openLift");
-}
-
-function checkIsLiftAlreadyPresent(destinationFloor) {
-  const allLiftElements = document.querySelectorAll(".lift");
-  const height = -(destinationFloor - 1) * 10;
-
-  for (const lift of allLiftElements) {
-    if (lift.style.transform == `translateY(${height}rem)`) {
-      let liftName = lift.id;
-      let liftId = Number(liftName.replace(/\D/g, ""));
-      return { liftElement: lift, liftId };
-    }
-  }
-
-  return { liftElement: null, liftId: null };
 }
