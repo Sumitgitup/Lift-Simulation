@@ -75,31 +75,35 @@ function generateFloors() {
     floorLiftCount[i] = 0;
   }
 }
-
 function generateLifts() {
   const firstFloor = document.querySelector('[floor-id="1"]');
+  const liftContainer = document.createElement("div");
+  liftContainer.className = "lift-container";
+
+  const containerWidth = totalLifts * 5.5; // Adjust this factor based on lift width
+  liftContainer.style.width = `${containerWidth}rem`; // Dynamically set width based on lift count
 
   for (let i = 0; i < totalLifts; i++) {
-    let liftContainer = document.createElement("div");
-    liftContainer.className = "lift";
+    let lift = document.createElement("div");
+    lift.className = "lift";
+    lift.id = `lift${i}`;
 
     const liftDoors = document.createElement("div");
     liftDoors.className = "lift_doors-container";
-    const liftLeftDoor = document.createElement("div");
-    const liftRightDoor = document.createElement("div");
+    const leftDoor = document.createElement("div");
+    const rightDoor = document.createElement("div");
 
-    liftLeftDoor.className = "left-door";
-    liftRightDoor.className = "right-door";
+    leftDoor.className = "left-door";
+    rightDoor.className = "right-door";
+    liftDoors.append(leftDoor, rightDoor);
+    lift.append(liftDoors);
 
-    liftContainer.id = `lift${i}`;
-
-    liftDoors.append(liftLeftDoor, liftRightDoor);
-    liftContainer.append(liftDoors);
-
-    firstFloor.append(liftContainer);
-    isLiftMoving[i] = false; // Initialize lifts as not moving
+    liftContainer.append(lift);
   }
+
+  firstFloor.append(liftContainer); // Append the container to the first floor
 }
+
 
 // This function will handle button clicks for both up and down buttons
 function buttonClickHandler(event) {
@@ -155,17 +159,17 @@ function getAvailableLift(destinationFloor) {
 
 function moveLift(liftInfo, destinationFloor) {
   const { liftElement, liftId } = liftInfo;
-  const currentFloor = Math.abs(parseInt(liftElement.style.transform.split("(")[1]) || 0) / 10 + 1;
+  const currentFloor = Math.abs(parseInt(liftElement.style.transform.split("(")[1]) || 0) / 8 + 1;
   const floorsToMove = Math.abs(destinationFloor - currentFloor);
 
   const transitionTime = floorsToMove * 2;
-  const height = -(destinationFloor - 1) * 10;
+  const height = -(destinationFloor - 1) * 8.13;
 
   // Mark the lift as busy
   isLiftMoving[liftId] = true;
   floorLiftCount[destinationFloor]++; // Increment lift count on the destination floor
 
-  liftElement.style.transition = `transform ${transitionTime}s ease-in-out`;
+  liftElement.style.transition = `all linear ${transitionTime}s `;
   liftElement.style.transform = `translateY(${height}rem)`;
 
   setTimeout(() => {
