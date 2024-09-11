@@ -115,7 +115,7 @@ function buttonClickHandler(event) {
 
   // Restrict to only two lifts per floor
   if (floorLiftCount[destinationFloor] >= 2) {
-    
+
     return; // If there are already 2 lifts on this floor, ignore further requests
   }
 
