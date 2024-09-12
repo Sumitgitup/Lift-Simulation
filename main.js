@@ -73,6 +73,7 @@ function generateFloors() {
     floorLiftCount[i] = 0;
   }
 }
+
 function generateLifts() {
   const firstFloor = document.querySelector('[floor-id="1"]');
   const liftContainer = document.createElement("div");
@@ -102,37 +103,31 @@ function generateLifts() {
   firstFloor.append(liftContainer); // Append the container to the first floor
 }
 
-
 // This function will handle button clicks for both up and down buttons
 function buttonClickHandler(event) {
   const element = event.target; // The button that was clicked
   const destinationFloor = Number(element.getAttribute("floor-id")); // Get the floor number where the button was clicked
 
   // Check if the button is currently processing a request
-  if (element.getAttribute("processing")) {
-    return; // If a request is being processed, ignore further clicks
+  if (element.disabled) {
+    return; // If the button is already disabled, ignore further clicks
   }
+
+  // Disable the button to prevent further clicks until the lift reaches the destination
+  element.disabled = true;
 
   // Restrict to only two lifts per floor
   if (floorLiftCount[destinationFloor] >= 2) {
-
     return; // If there are already 2 lifts on this floor, ignore further requests
   }
-
-  element.setAttribute("processing", "true"); // Mark the button as being processed
 
   // Process the request
   const availableLift = getAvailableLift(destinationFloor);
   if (availableLift) {
-    moveLift(availableLift, destinationFloor);
+    moveLift(availableLift, destinationFloor, element); // Pass the button element to re-enable it later
   } else {
     pendingFloors.push(destinationFloor); // If no lifts are available, add to pending queue
   }
-
-  // Wait for 2 seconds before allowing the button to process another request
-  setTimeout(() => {
-    element.removeAttribute("processing"); // Allow new requests after 2 seconds
-  }, 2000); // 2000 milliseconds = 2 seconds
 }
 
 function getAvailableLift(destinationFloor) {
@@ -155,7 +150,7 @@ function getAvailableLift(destinationFloor) {
   return nearestLift;
 }
 
-function moveLift(liftInfo, destinationFloor) {
+function moveLift(liftInfo, destinationFloor, buttonElement) {
   const { liftElement, liftId } = liftInfo;
   const currentFloor = Math.abs(parseInt(liftElement.style.transform.split("(")[1]) || 0) / 8 + 1;
   const floorsToMove = Math.abs(destinationFloor - currentFloor);
@@ -179,11 +174,15 @@ function moveLift(liftInfo, destinationFloor) {
       setTimeout(() => {
         if (pendingFloors.length > 0) {
           const nextFloor = pendingFloors.shift();
-          moveLift(liftInfo, nextFloor); // Move to the next pending request if any
+          moveLift(liftInfo, nextFloor, buttonElement); // Move to the next pending request if any
         } else {
           isLiftMoving[liftId] = false; // Mark the lift as available after operation
           floorLiftCount[destinationFloor]--; // Decrement lift count after the lift leaves
         }
+
+        // Re-enable the button after the lift reaches and the doors close
+        buttonElement.disabled = false;
+
       }, 2500); // Wait for 2.5 seconds after closing the doors
     }, 2500); // Keep the doors open for 2.5 seconds
   }, transitionTime * 1000); // Wait for the lift to finish moving
